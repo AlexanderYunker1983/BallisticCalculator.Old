@@ -181,10 +181,10 @@ namespace CalculationCore
 
         public static double GetCx(CalculationVector u)
         {
-            var mah = u.Velocity/Atmosphere.GetSoundVelocity(u.Radius - RadiusOfEarth);
+            var mah = u.Mah;
             if (mah <= 0.8) return 0.29;
             if (mah <= 1.068) return mah - 0.51;
-            return 0.91 + 0.5/mah;
+            return 0.089 + 0.5/mah;
         }
 
         public static double GetCy(CalculationVector u)
