@@ -76,6 +76,7 @@ namespace BallisticCalculator
             initialParams.Phi0Time = 40.0;
             initialParams.Phi1Time = Convert.ToDouble(textBox1.Text);
             initialParams.Phi1 = Convert.ToDouble(textBox2.Text)/180.0*Math.PI;
+            initialParams.Initialize();
             calculationCore.SetInitParams(initialParams,0.01);
             calculationCore.RunRungeKutta();
         }

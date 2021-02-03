@@ -34,5 +34,30 @@ namespace CalculationCore
         public double B { get { return - 1.0 * Phi1/(TimeSumm - Phi1Time) - 2*A*Phi1Time; } }
 
         public double C { get { return Math.PI/2 - A*Math.Pow(Phi0Time, 2) - B*Phi0Time; } }
+
+        public double SummMass;
+        public double SummMass2;
+        public double SummMass3;
+
+        public double Consumption1;
+        public double Consumption2;
+        public double Consumption3;
+
+        public double TimeSumm2;
+        public double TimeSumm3;
+
+        public void Initialize()
+        {
+            SummMass = MassGo + Mass3 + Mass2 + Mass1;
+            Consumption1 = Thrust1 / Isp1;
+            Consumption2 = Thrust2 / Isp2;
+            Consumption3 = Thrust3 / Isp3;
+
+            SummMass2 = SummMass - Mass1 + Time1 * Consumption2;
+            SummMass3 = SummMass - Mass1 - Mass2 + (Time1 + Time2) * Consumption3;
+
+            TimeSumm2 = Time2 + Time1;
+            TimeSumm3 = TimeSumm2 + Time3;
+        }
     }
 }

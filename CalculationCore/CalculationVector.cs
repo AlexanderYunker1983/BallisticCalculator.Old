@@ -4,41 +4,44 @@ namespace CalculationCore
 {
     public class CalculationVector
     {
-        public double Velocity { get; set; }
-        public double Tetta { get; set; }
-        public double Phi { get; set; }
-        public double CurrentTime { get; set; }
-        public double Radius { get; set; }
-        public double Hi { get; set; }
-        public double Alpha { get; set; }
-        public double Massa { get; set; }
-        public double Acceleration { get; set; }
-        public double Density { get; set; }
+        public double Velocity;
+        public double Tetta;
+        public double Phi;
+        public double CurrentTime;
+        public double Radius;
+        public double Hi;
+        public double Alpha;
+        public double Massa;
+        public double Acceleration;
+        public double Density;
+        public double Mah;
         public const double RadiusOfEarth = 6371100.0;
-        public static AtmosphereInterpolator Atmosphere { get; set; }
+        public static AtmosphereInterpolator Atmosphere;
         public const double Surf = 4.908738521875;
         public const double G0 = 9.80665;
-        public static InitialParams InParams { get; set; }
-        public static double A { get; set; }
-        public static double B { get; set; }
-        public static double C { get; set; }
+        public static InitialParams InParams;
+        public static double A;
+        public static double B;
+        public static double C;
 
         public static CalculationVector operator +(CalculationVector a, CalculationVector b)
         {
-            return new CalculationVector
-                {
-                    Alpha = a.Alpha + b.Alpha,
-                    CurrentTime = a.CurrentTime + b.CurrentTime,
-                    Hi = a.Hi + b.Hi,
-                    Radius = a.Radius + b.Radius,
-                    Tetta = a.Tetta + b.Tetta,
-                    Velocity = a.Velocity + b.Velocity,
-                };
+            var opAddition = new CalculationVector
+            {
+                Alpha = a.Alpha + b.Alpha,
+                CurrentTime = a.CurrentTime + b.CurrentTime,
+                Hi = a.Hi + b.Hi,
+                Radius = a.Radius + b.Radius,
+                Tetta = a.Tetta + b.Tetta,
+                Velocity = a.Velocity + b.Velocity
+            };
+            opAddition.Mah = opAddition.Velocity/ Atmosphere.GetSoundVelocity(opAddition.Radius - RadiusOfEarth);
+            return opAddition;
         }
 
         public static CalculationVector operator -(CalculationVector a, CalculationVector b)
         {
-            return new CalculationVector
+            var opSubtraction = new CalculationVector
             {
                 Alpha = a.Alpha - b.Alpha,
                 CurrentTime = a.CurrentTime - b.CurrentTime,
@@ -47,11 +50,13 @@ namespace CalculationCore
                 Tetta = a.Tetta - b.Tetta,
                 Velocity = a.Velocity - b.Velocity,
             };
+            opSubtraction.Mah = opSubtraction.Velocity / Atmosphere.GetSoundVelocity(opSubtraction.Radius - RadiusOfEarth);
+            return opSubtraction;
         }
 
         public static CalculationVector operator *(double a, CalculationVector b)
         {
-            return new CalculationVector
+            var opMultiply = new CalculationVector
             {
                 Alpha = a * b.Alpha,
                 CurrentTime = a * b.CurrentTime,
@@ -60,11 +65,13 @@ namespace CalculationCore
                 Tetta = a * b.Tetta,
                 Velocity = a * b.Velocity,
             };
+            opMultiply.Mah = opMultiply.Velocity / Atmosphere.GetSoundVelocity(opMultiply.Radius - RadiusOfEarth);
+            return opMultiply;
         }
 
         public static CalculationVector operator *(CalculationVector b,double a)
         {
-            return new CalculationVector
+            var opMultiply = new CalculationVector
             {
                 Alpha = a * b.Alpha,
                 CurrentTime = a * b.CurrentTime,
@@ -73,19 +80,23 @@ namespace CalculationCore
                 Tetta = a * b.Tetta,
                 Velocity = a * b.Velocity,
             };
+            opMultiply.Mah = opMultiply.Velocity / Atmosphere.GetSoundVelocity(opMultiply.Radius - RadiusOfEarth);
+            return opMultiply;
         }
 
         public static CalculationVector F(CalculationVector u, double t)
         {
-            return new CalculationVector
-                {
-                    Velocity = GetVelocityDx(u),
-                    Tetta = GetTettaDx(u),
-                    Radius = GetRadiusDx(u),
-                    Hi = GetHiDx(u),
-                    CurrentTime = t,
-                    Alpha = 0
-                };
+            var calculationVector = new CalculationVector
+            {
+                Velocity = GetVelocityDx(u),
+                Tetta = GetTettaDx(u),
+                Radius = GetRadiusDx(u),
+                Hi = GetHiDx(u),
+                CurrentTime = t,
+                Alpha = 0
+            };
+            calculationVector.Mah = calculationVector.Velocity / Atmosphere.GetSoundVelocity(calculationVector.Radius - RadiusOfEarth);
+            return calculationVector;
         }
 
         public static CalculationVector GetNewStep(CalculationVector u, double dt)
@@ -126,18 +137,15 @@ namespace CalculationCore
         {
             if (currentTime <= InParams.Time1)
             {
-                return InParams.MassGo + InParams.Mass1 + InParams.Mass2 + InParams.Mass3 -
-                       currentTime*InParams.Thrust1/InParams.Isp1;
+                return InParams.SummMass - currentTime*InParams.Consumption1;
             }
-            if (currentTime <= InParams.Time2 + InParams.Time1)
+            if (currentTime <= InParams.TimeSumm2)
             {
-                return InParams.MassGo + InParams.Mass3 + InParams.Mass2  -
-                       (currentTime - InParams.Time1) * InParams.Thrust2 / InParams.Isp2;
+                return InParams.SummMass2 - currentTime * InParams.Consumption2;
             }
-            if (currentTime <= InParams.Time3 + InParams.Time2 + InParams.Time1)
+            if (currentTime <= InParams.TimeSumm3)
             {
-                return InParams.MassGo + InParams.Mass3 -
-                       (currentTime -InParams.Time1 - InParams.Time2) * InParams.Thrust3 / InParams.Isp3;
+                return InParams.SummMass3 - currentTime * InParams.Consumption3;
             }
             return InParams.MassGo;
         }
@@ -145,8 +153,8 @@ namespace CalculationCore
         private static double GetThrust(double currentTime)
         {
             if (currentTime <= InParams.Time1) return InParams.Thrust1;
-            if (currentTime <= InParams.Time2 + InParams.Time1) return InParams.Thrust2;
-            return currentTime <= InParams.Time3 + InParams.Time2 + InParams.Time1 ? InParams.Thrust3 : 0.0;
+            if (currentTime <= InParams.TimeSumm2) return InParams.Thrust2;
+            return currentTime <= InParams.TimeSumm3 ? InParams.Thrust3 : 0.0;
         }
 
         private static double GetHiDx(CalculationVector calculationVector)
@@ -190,7 +198,7 @@ namespace CalculationCore
         public static double GetCy(CalculationVector u)
         {
             var cx = GetCx(u);
-            var mah = u.Velocity / Atmosphere.GetSoundVelocity(u.Radius - RadiusOfEarth);
+            var mah = u.Mah;
             double cya;
             if (mah <= 0.25) cya = 2.8;
             else if (mah <= 1.1) cya = 2.8 + 0.447 * (mah - 0.25);
